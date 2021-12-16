@@ -1,32 +1,31 @@
+import torch
+from torch.utils.data import TensorDataset, DataLoader
 from transformers import BertTokenizer
-from preProcessor import PreProcessor
 
 # Encoding input
 
 
 class InputEncoder():
 
-    def __init__(self, X_test):
+    def __init__(self, X, Y, Sampler, batch_size):
         self.tokenizer = BertTokenizer.from_pretrained(
             "bert-base-uncased", do_lower_case=True)
-        self.X_test_raw_data = X_test
-        self.X_test_features = list()
+        self.X = X
+        self.Y = torch.tensor(Y)
+        X_features = self.tokenizer.batch_encode_plus(self.X,
+                                                      # Add [CLS] and [SEP] tokens
+                                                      add_special_tokens=True,
+                                                      # Add [PAD]s
+                                                      padding=True,
+                                                      max_length=512,
+                                                      return_token_type_ids=False,
+                                                      return_attention_mask=True,  # Generate the attention mask
+                                                      truncation=True,  # Truncate data beyond max length
+                                                      return_tensors='pt',  # Retuns PyTorch tensor format
+                                                      )
+        dataset = TensorDataset(
+            X_features['input_ids'], X_features['attention_mask'], self.Y)
 
-    def getFeatures(self):
-        for x_test_raw in self.X_test_raw_data:
-            self.X_test_features.append(self.tokenizer.encode_plus(text=x_test_raw, add_special_tokens=True,  # Add [CLS] and [SEP] tokens
-                                                                   # Add [PAD]s
-                                                                   padding=True,
-                                                                   max_length=512,
-                                                                   return_token_type_ids=False,
-                                                                   return_attention_mask=True,  # Generate the attention mask
-                                                                   truncation=True,  # Truncate data beyond max length
-                                                                   return_tensors='pt',  # Retuns PyTorch tensor format
-                                                                   ))
-            self.X_test_features[-1]['attention_mask'] = self.X_test_features[-1]["attention_mask"].flatten()
-            self.X_test_features[-1]['input_ids'] = self.X_test_features[-1]["input_ids"].flatten()
-
-
-news = PreProcessor()
-x_train, x_test, y_train, y_test, x_validation, y_validation = news.fetch()
-InputEncoder(x_train).getFeatures()
+        if Sampler != None:
+            self.dataloaded = DataLoader(dataset,
+                                         sampler=Sampler(dataset), batch_size=batch_size)
