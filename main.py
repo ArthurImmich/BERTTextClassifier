@@ -85,6 +85,6 @@ train_model(trainInputEncoded.dataloaded, optimizer, scheduler,
             device, trainingModel, epochs)
 
 input_ids, predictions, true_labels, attentions = evaluate(
-    valInputEncoded.dataloaded, trainingModel.model, device)
+    valInputEncoded.dataloaded, trainingModel, device)
 
 print(sklearn.metrics.classification_report(true_labels, predictions))
