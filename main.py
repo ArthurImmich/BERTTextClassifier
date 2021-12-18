@@ -18,8 +18,12 @@ def evaluate(dataEncoded, trainingModel: TrainingModel, device):
         batch_gpu = (t.to(device) for t in batch_cpu)
         input_ids_gpu, attention_mask, labels = batch_gpu
         with torch.no_grad():
-            loss, logits, hidden_states_output, attention_mask_output = trainingModel.model(
+            outputs = trainingModel.model(
                 input_ids=input_ids_gpu, attention_mask=attention_mask, labels=labels)
+            loss = outputs['loss']
+            logits = outputs['logits']
+            attention_mask_output = outputs['attentions']
+            logits = logits.cpu()
             logits = logits.cpu()
             prediction = torch.argmax(logits, dim=1).tolist()
             true_label = labels.cpu().tolist()
@@ -45,7 +49,7 @@ def train_model(dataEncoded, optimizer, scheduler, device, trainingModel: Traini
             outputs = trainingModel.model(
                 input_ids=input_ids, attention_mask=attention_mask, labels=labels)
             # loss, logits, hidden_states_output, attention_mask_output = outputs
-            loss = outputs[0]
+            loss = outputs['loss']
             if i % 100 == 0:
                 print("loss - {0}, iteration - {1}/{2}".format(loss, e + 1, i))
             trainingModel.model.zero_grad()
@@ -58,7 +62,7 @@ def train_model(dataEncoded, optimizer, scheduler, device, trainingModel: Traini
 
 
 epochs = 5
-batch_size = 4
+batch_size = 10
 parameters = {
     'learning_rate': 2e-5,
     'num_warmup_steps': 1000,
